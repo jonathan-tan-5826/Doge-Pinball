@@ -1,6 +1,4 @@
 Doge Pinball
-
-Description
 =================================
 Doge Pinball is a custom arcade game that simulates a cross-over between the classic arcade games pinball and skee-ball. On one side of the playing field, there is a drain partially protected by player-controlled bats called flippers. On the other side of the playing field, there is the doghouse (goal). The player starts the game by dropping a pinball into the start hole and onto the playing field. The aim is for the player to bat the ball, using the flippers, into the doghouse before time runs out. The player loses if the ball rolls down the drain. The player’s score is equal to the time remaining after the player manages to get the treat into the doghouse. The player who does so in the least amount of time holds the high score.
 
