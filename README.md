@@ -14,20 +14,17 @@ Doge Pinball is a custom arcade game that simulates a cross-over between the cla
 https://www.youtube.com/watch?v=cNTNUxwYy78
 
 ## Programming Files
-### [a2d.h](https://drive.google.com/open?id=0B3XYlV60P2byUE54S29ZVGtWcHM)
-### [a2d.c](https://drive.google.com/open?id=0B3XYlV60P2byS2huQUpxUGNLYlU)
+### [a2d.h](https://drive.google.com/open?id=0B3XYlV60P2byUE54S29ZVGtWcHM) [a2d.c](https://drive.google.com/open?id=0B3XYlV60P2byS2huQUpxUGNLYlU)
 About: Contains functions for converting analog signals to digital signals.  
 Usage: Joystick and infrared sensors  
 Author: Affiliate of UC Riverside  
 
-### [io.h](https://drive.google.com/open?id=0B3XYlV60P2bycnBsMGRBUnFfcGM) 
-### [io.c](https://drive.google.com/open?id=0B3XYlV60P2byRUppbGlBZlFZdjg) 
+### [io.h](https://drive.google.com/open?id=0B3XYlV60P2bycnBsMGRBUnFfcGM) [io.c](https://drive.google.com/open?id=0B3XYlV60P2byRUppbGlBZlFZdjg) 
 About: Contains functions for programming the LCD display  
 Usage: LCD Display  
 Author: Provided by UC Riverside  
 
-### [joystick.h](https://drive.google.com/open?id=0B3XYlV60P2bycUpCUVpsQVdRb2M) 
-### [joystick.c](https://drive.google.com/open?id=0B3XYlV60P2byVlRraF91cUJFZms) 
+### [joystick.h](https://drive.google.com/open?id=0B3XYlV60P2bycUpCUVpsQVdRb2M) [joystick.c](https://drive.google.com/open?id=0B3XYlV60P2byVlRraF91cUJFZms) 
 About: Contains functions for reading the joystick’s values to determine if user has toggled the joystick  
 Usage: Joystick  
 Author: Jonathan Tan  
