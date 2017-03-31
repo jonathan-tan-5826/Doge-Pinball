@@ -43,7 +43,7 @@ Author: Provided by UC Riverside
 About: Contains the bulk of the project -- all of the task functions and their required definitions, functions, and variables.  
 Author: Jonathan Tan  
 
-
+## More Information found in [Full Report](https://github.com/jonathan-tan-5826/Doge-Pinball/blob/master/Report.pdf)
 
 
 
