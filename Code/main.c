@@ -1,10 +1,9 @@
 /*
-* main.c
-*
-* Created: 3/13/2017 10:32:06 PM
-* Author : Jonathan Tan
-*/
-
+ * main.c
+ *
+ * Created: 3/13/2017 10:32:06 PM
+ * Author : Jonathan Tan
+ */
 #include <avr/delay.h>
 #include <avr/eeprom.h>
 #include <avr/io.h>
@@ -16,15 +15,97 @@
 #include "timer.h"
 
 /*
-* Communication
-* Shared Variables
-*/
+ * Communication
+ * Variable Declaration
+ */
 bool isGameMode = false;
 bool isPlaying = false;
 bool isBallIn = false;
 bool isGoal = false;
 bool isGutter = false;
 
+/*
+ * Step Motor
+ * Variable Declaration
+ */
+typedef struct _StepMotor
+{
+	unsigned short remainingRotations;
+	unsigned short rotationCounter;
+	unsigned char direction; // 0 = left, 1 = right
+} StepMotor;
+
+#define A 0x01
+#define B 0x02
+#define C 0x04
+#define D 0x08
+#define AB 0x03
+#define BC 0x06
+#define CD 0x0C
+#define DA 0x09
+#define INITIAL_ROTATION_DEGREE 50
+#define REGULAR_ROTATION_DEGREE 100
+#define JOYSTICK_THRESHOLD_HIGH 800
+#define JOYSTICK_THRESHOLD_LOW 300
+unsigned char currentRotation = 0x00;
+unsigned char clockwise[8] = {A, AB, B, BC, C, CD, D, DA};
+unsigned char counterclockwise[8] = {DA, D, CD, C, BC, B, AB, A};
+enum StepMotor_States { Wait_StepMotor, InitialRotation_StepMotor, RotateRight_StepMotor, RotateLeft_StepMotor, ResetFromInitial_StepMotor, Reset_StepMotor };
+static StepMotor stepMotor;
+
+/*
+ * IRSensor
+ * Variable Declaration
+ */
+#define BALLIN_IRSENSOR_THRESHOLD 990
+#define GOAL_IRSENSOR_THRESHOLD 970
+#define GUTTER_IRSENSOR_THRESHOLD 970
+enum IRSensor_States { Wait_Sensor, On_Sensor };
+
+/*
+ * Gameplay
+ * Variable Declaration
+ */
+#define EEPROM_ADDRESS 0x00
+#define THIRTY_SECONDS 150
+#define FIVE_SECONDS 25
+#define NUMBER_TICKS_PER_SECOND 5
+#define LCD_SECONDROW_COLUMN_BEGIN 17
+static char gameTimer = 0;
+unsigned char CURRENT_HIGHSCORE = 0;
+const unsigned char GAME_COUNTDOWN[31][32] = {
+	"Time Remaining: 0 seconds...", "Time Remaining: 1 seconds...", "Time Remaining: 2 seconds...", "Time Remaining: 3 seconds...",
+	"Time Remaining: 4 seconds...", "Time Remaining: 5 seconds...", "Time Remaining: 6 seconds...", "Time Remaining: 7 seconds...",
+	"Time Remaining: 8 seconds...", "Time Remaining: 9 seconds...", "Time Remaining: 10 seconds...", "Time Remaining: 11 seconds...",
+	"Time Remaining: 12 seconds...", "Time Remaining: 13 seconds...", "Time Remaining: 14 seconds...", "Time Remaining: 15 seconds...",
+	"Time Remaining: 16 seconds...", "Time Remaining: 17 seconds...", "Time Remaining: 18 seconds...", "Time Remaining: 19 seconds...",
+	"Time Remaining: 20 seconds...", "Time Remaining: 21 seconds...", "Time Remaining: 22 seconds...", "Time Remaining: 23 seconds...",
+	"Time Remaining: 24 seconds...", "Time Remaining: 25 seconds...", "Time Remaining: 26 seconds...", "Time Remaining: 27 seconds...",
+	"Time Remaining: 28 seconds...", "Time Remaining: 29 seconds...", "Time Remaining: 30 seconds..."
+};
+const unsigned char GAME_LOST[6][32] = {
+	"  Game Over :(  Restarting 0...", "  Game Over :(  Restarting 1...", "  Game Over :(  Restarting 2...",
+	"  Game Over :(  Restarting 3...", "  Game Over :(  Restarting 4...", "  Game Over :(  Restarting 5..."
+};
+enum Game_States { Wait_Game, Wait_BallIn_Game, Play_Game, NewHighScore_Game, UpdateHighScore_Game, Won_Game, Lost_Game };
+
+/*
+ * Menu
+ * Variable Declaration
+ */
+#define EEPROM_ADDRESS 0x00
+enum MenuStates { Main_Screen, ViewHighScore_Screen, ResetHighScore_Screen, DidResetHighScore_Screen, Play_Screen };
+const unsigned char HIGHSCORES[31][2] = {
+	"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10",
+	"11", "12", "13", "14", "15", "16", "17", "18", "19", "20",
+	"21", "22", "23", "24", "25", "26", "27", "28", "29", "30"
+};
+unsigned char highscoreDisplayString[32];
+
+/* 
+ * Communication
+ * Functions
+ */
 void SetGameMode(bool value)
 {
 	if (isGameMode != value)
@@ -66,35 +147,9 @@ void SetGutter(bool value)
 }
 
 /*
-* Step Motor
+* Step Motor Functions
 *
 */
-typedef struct _StepMotor
-{
-	unsigned short remainingRotations;
-	unsigned short rotationCounter;
-	unsigned char direction; // 0 = left, 1 = right
-} StepMotor;
-
-enum StepMotor_States { Wait_StepMotor, InitialRotation_StepMotor, RotateRight_StepMotor, RotateLeft_StepMotor, ResetFromInitial_StepMotor, Reset_StepMotor };
-
-#define A 0x01
-#define B 0x02
-#define C 0x04
-#define D 0x08
-#define AB 0x03
-#define BC 0x06
-#define CD 0x0C
-#define DA 0x09
-#define INITIAL_ROTATION_DEGREE 50
-#define REGULAR_ROTATION_DEGREE 100
-#define JOYSTICK_THRESHOLD_HIGH 800
-#define JOYSTICK_THRESHOLD_LOW 300
-unsigned char currentRotation = 0x00;
-unsigned char clockwise[8] = {A, AB, B, BC, C, CD, D, DA};
-unsigned char counterclockwise[8] = {DA, D, CD, C, BC, B, AB, A};
-static StepMotor stepMotor;
-
 unsigned short GetNumberPhases(unsigned short degree)
 {
 	return (degree / 5.625) * 64;
@@ -324,15 +379,9 @@ int TickFunction_StepMotor(int state)
 }
 
 /*
-* IRSensors
-*
-*/
-#define BALLIN_IRSENSOR_THRESHOLD 990
-#define GOAL_IRSENSOR_THRESHOLD 970
-#define GUTTER_IRSENSOR_THRESHOLD 970
-
-enum IRSensor_States { Wait_Sensor, On_Sensor };
-
+ * IRSensor
+ * Functions
+ */
 int TickFunction_IRSensor_BallIn(int state)
 {
 	Set_A2D_Pin(0);
@@ -507,35 +556,9 @@ int TickFunction_IRSensor_Gutter(int state)
 }
 
 /*
-* Gameplay
-*
-*/
-#define EEPROM_ADDRESS 0x00
-#define THIRTY_SECONDS 150
-#define FIVE_SECONDS 25
-#define NUMBER_TICKS_PER_SECOND 5
-#define LCD_SECONDROW_COLUMN_BEGIN 17
-
-enum Game_States { Wait_Game, Wait_BallIn_Game, Play_Game, NewHighScore_Game, UpdateHighScore_Game, Won_Game, Lost_Game };
-
-static char gameTimer = 0;
-unsigned char CURRENT_HIGHSCORE = 0;
-
-const unsigned char GAME_COUNTDOWN[31][32] = {
-	"Time Remaining: 0 seconds...", "Time Remaining: 1 seconds...", "Time Remaining: 2 seconds...", "Time Remaining: 3 seconds...",
-	"Time Remaining: 4 seconds...", "Time Remaining: 5 seconds...", "Time Remaining: 6 seconds...", "Time Remaining: 7 seconds...",
-	"Time Remaining: 8 seconds...", "Time Remaining: 9 seconds...", "Time Remaining: 10 seconds...", "Time Remaining: 11 seconds...",
-	"Time Remaining: 12 seconds...", "Time Remaining: 13 seconds...", "Time Remaining: 14 seconds...", "Time Remaining: 15 seconds...",
-	"Time Remaining: 16 seconds...", "Time Remaining: 17 seconds...", "Time Remaining: 18 seconds...", "Time Remaining: 19 seconds...",
-	"Time Remaining: 20 seconds...", "Time Remaining: 21 seconds...", "Time Remaining: 22 seconds...", "Time Remaining: 23 seconds...",
-	"Time Remaining: 24 seconds...", "Time Remaining: 25 seconds...", "Time Remaining: 26 seconds...", "Time Remaining: 27 seconds...",
-	"Time Remaining: 28 seconds...", "Time Remaining: 29 seconds...", "Time Remaining: 30 seconds..."
-};
-const unsigned char GAME_LOST[6][32] = {
-	"  Game Over :(  Restarting 0...", "  Game Over :(  Restarting 1...", "  Game Over :(  Restarting 2...",
-	"  Game Over :(  Restarting 3...", "  Game Over :(  Restarting 4...", "  Game Over :(  Restarting 5..."
-};
-
+ * Gameplay
+ * Functions
+ */
 unsigned char GetGameTimerInSeconds()
 {
 	return gameTimer / NUMBER_TICKS_PER_SECOND;
@@ -746,20 +769,9 @@ int TickFunction_Game(int state)
 }
 
 /*
-* Menu
-*
-*/
-#define EEPROM_ADDRESS 0x00
-
-enum MenuStates { Main_Screen, ViewHighScore_Screen, ResetHighScore_Screen, DidResetHighScore_Screen, Play_Screen };
-
-const unsigned char HIGHSCORES[31][2] = {
-	"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10",
-	"11", "12", "13", "14", "15", "16", "17", "18", "19", "20",
-	"21", "22", "23", "24", "25", "26", "27", "28", "29", "30"
-};
-unsigned char highscoreDisplayString[32];
-
+ * Menu
+ * Functions
+ */
 void UpdateLCD_To_MainScreen()
 {
 	LCD_DisplayString(1, "   -- Main --     --> To Start  ");
